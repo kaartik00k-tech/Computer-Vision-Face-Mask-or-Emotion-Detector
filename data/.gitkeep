@@ -1,0 +1,114 @@
+function face_mask_emotion_detector
+    % MATLAB starter for face-mask / emotion detection from a folder of images.
+    % This is a simple heuristic demo intended to be easy to run and extend.
+
+    fprintf('Starting MATLAB face-mask/emotion detector demo...\n');
+
+    % Check required toolboxes
+    installedProducts = {ver().Name};
+    if ~any(strcmp(installedProducts, 'Image Processing Toolbox'))
+        error('Image Processing Toolbox is required.');
+    end
+    if ~any(strcmp(installedProducts, 'Computer Vision Toolbox'))
+        error('Computer Vision Toolbox is required.');
+    end
+
+    dataFolder = fullfile(pwd, 'data');
+    if ~isfolder(dataFolder)
+        warning('No data folder found at %s. Create it and add sample images.', dataFolder);
+        mkdir(dataFolder);
+        fprintf('Created data/ folder. Add image files there and run again.\n');
+        return;
+    end
+
+    % Supported image file types
+    imageFiles = [dir(fullfile(dataFolder, '*.jpg')); ...
+                  dir(fullfile(dataFolder, '*.jpeg')); ...
+                  dir(fullfile(dataFolder, '*.png')); ...
+                  dir(fullfile(dataFolder, '*.bmp'))];
+
+    if isempty(imageFiles)
+        warning('No image files found in %s. Add sample images and run again.', dataFolder);
+        return;
+    end
+
+    faceDetector = vision.CascadeObjectDetector();
+
+    for k = 1:numel(imageFiles)
+        filePath = fullfile(dataFolder, imageFiles(k).name);
+        fprintf('\nProcessing %s\n', imageFiles(k).name);
+
+        img = imread(filePath);
+        if size(img, 3) == 3
+            gray = rgb2gray(img);
+        else
+            gray = img;
+        end
+
+        bboxes = step(faceDetector, gray);
+        if isempty(bboxes)
+            fprintf('  No faces detected.\n');
+            continue;
+        end
+
+        for j = 1:size(bboxes, 1)
+            face = imcrop(img, bboxes(j, :));
+            [maskLabel, maskScore] = detectMask(face);
+            [emotionLabel, emotionScore] = estimateEmotion(face);
+
+            fprintf('  Face %d: %s (mask score %.2f), %s (emotion score %.2f)\n', ...
+                    j, maskLabel, maskScore, emotionLabel, emotionScore);
+
+            figure('Name', sprintf('%s - Face %d', imageFiles(k).name, j), ...
+                   'NumberTitle', 'off');
+            imshow(face);
+            title(sprintf('%s | %s', maskLabel, emotionLabel), 'FontSize', 12);
+        end
+    end
+
+    fprintf('\nDemo complete.\n');
+end
+
+function [maskLabel, score] = detectMask(face)
+    % Simple heuristic: lower-face brightness/contrast used to infer mask.
+    if size(face, 3) == 3
+        gray = rgb2gray(face);
+    else
+        gray = face;
+    end
+
+    lowerFace = gray(round(size(gray, 1) * 0.55):end, :);
+    score = mean(double(lowerFace(:)));
+
+    if score < 100
+        maskLabel = 'Mask';
+    else
+        maskLabel = 'No Mask';
+    end
+end
+
+function [emotionLabel, score] = estimateEmotion(face)
+    % Very simple sample-based heuristic for labeling emotion.
+    if size(face, 3) == 3
+        gray = rgb2gray(face);
+    else
+        gray = face;
+    end
+
+    h = size(gray, 1);
+    w = size(gray, 2);
+
+    mouthBand = gray(round(h * 0.62):round(h * 0.90), :);
+    eyeBand = gray(round(h * 0.20):round(h * 0.45), :);
+
+    mouthContrast = std(double(mouthBand(:)));
+    eyeContrast = std(double(eyeBand(:)));
+
+    if mouthContrast > eyeContrast * 1.05
+        emotionLabel = 'Happy';
+        score = mouthContrast / max(eyeContrast, eps);
+    else
+        emotionLabel = 'Neutral';
+        score = eyeContrast / max(mouthContrast, eps);
+    end
+end
