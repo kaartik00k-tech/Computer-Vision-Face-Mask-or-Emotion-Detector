@@ -19,7 +19,7 @@ cam=[]; t=[]; detector=vision.CascadeObjectDetector(); models=struct('emotionNet
         try
             if exist('webcam','file')~=2, error('Webcam support unavailable. Check MATLAB toolboxes and camera adaptor.'); end
             available=webcamlist; if isempty(available), error('No compatible webcam found. Check camera permissions and close other camera apps.'); end
-            cam=webcam(1); models=loadVisionModels(fullfile(fileparts(mfilename('fullpath')),'models'));
+            cam=webcam(1); models=loadVisionModels();
             running=true; tick=tic; n=0; status.Text='STATUS: CAMERA RUNNING'; status.FontColor=[0.35 0.9 0.65];
             t=timer('ExecutionMode','fixedSpacing','Period',0.1,'BusyMode','drop','TimerFcn',@frameTick); start(t);
         catch e, msg.Text=e.message; stopCamera(); end
