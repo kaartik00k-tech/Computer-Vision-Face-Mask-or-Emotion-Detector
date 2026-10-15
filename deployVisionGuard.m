@@ -27,7 +27,8 @@ sourceFiles={ ...
 for k=1:numel(sourceFiles)
     if ~isfile(sourceFiles{k}), error('Missing source file: %s',sourceFiles{k}); end
 end
-additional=[sourceFiles,modelFiles];
+% Add the models folder as a folder so the compiled app keeps the models/ path.
+additional=[sourceFiles,{modelDir}];
 outDir=fullfile(root,'dist','VisionGuardAI');
 if ~isfolder(fileparts(outDir)), mkdir(fileparts(outDir)); end
 opts=compiler.build.StandaloneApplicationOptions(appFile, ...
