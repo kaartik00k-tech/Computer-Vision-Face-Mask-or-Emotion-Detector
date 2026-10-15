@@ -8,9 +8,10 @@ function trainVisionModels(dataRoot, outputDir)
 if nargin<1 || isempty(dataRoot), dataRoot=fullfile(pwd,'dataset'); end
 if nargin<2 || isempty(outputDir), outputDir=fullfile(pwd,'models'); end
 if ~isfolder(outputDir), mkdir(outputDir); end
-required={{'emotion',{'Happy','Sad','Neutral'}},{'mask',{'Mask','No Mask'}}};
-for k=1:numel(required)
-    task=required{k}{1}; classes=required{k}{2};
+tasks={'emotion','mask'};
+classLists={{'Happy','Sad','Neutral'},{'Mask','No Mask'}};
+for k=1:numel(tasks)
+    task=tasks{k}; classes=classLists{k};
     taskDir=fullfile(dataRoot,task);
     if ~isfolder(taskDir), error('Missing dataset folder: %s',taskDir); end
     for j=1:numel(classes)
@@ -39,6 +40,10 @@ observed=string(categories(imds.Labels));
 for k=1:numel(expectedClasses)
     if ~any(strcmpi(observed,expectedClasses{k}))
         error('Dataset %s is missing class folder %s.',folder,expectedClasses{k});
+    end
+    nClass=sum(imds.Labels==expectedClasses{k});
+    if nClass<5
+        error('Class %s in %s has only %d images; add at least 5 before splitting.',expectedClasses{k},folder,nClass);
     end
 end
 % Hold out 20%% for validation; this is a development validation split,
