@@ -1,0 +1,7 @@
+# Local training data and model weights (may be large or licensed separately)
+/dataset/emotion/
+/dataset/mask/
+/models/*.mat
+/dist/
+/*.asv
+/matlab.prj
